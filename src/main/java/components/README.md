@@ -1,9 +1,11 @@
 # The Components Package
 
 - [The Font Renderer](#font-renderer)
-- [The Sprite](#sprite)
-- [The Sprite Renderer](#sprite-renderer)
+- [The Rigid Body](#the-rigid-body)
+- [The Sprite](#the-sprite)
+- [The Sprite Renderer](#the-sprite-renderer)
 - [The Sprite Sheet](#sprite-sheet)
+
 
 ## Font Renderer
 An empty class for now.
@@ -25,12 +27,29 @@ This function overrides the start function of the abstract class Jade.Component 
 It's current only use is for testing, which is why it just prints to the console that it works, and 
 isn't being invoked anywhere in the code.
 
-
-## Sprite
+## The Rigid Body
+The rigid body is a test class that will be removed/implemented better soon.
 
 ```java
-private Texture texture;
-private Vector2f[] texCoords;
+private int colliderType = 0;
+private float friction = 0.8f;
+public Vector3f velocity = new Vector3f(0, 0.5f, 0);
+public transient Vector4f tmp = new Vector4f(0, 0, 0, 0);
+```
+these are some example variables that will be used later.
+
+
+
+## The Sprite
+
+```java
+private Texture texture = null;
+private Vector2f[] texCoords = {
+        new Vector2f(1, 1),
+        new Vector2f(1, 0),
+        new Vector2f(0, 0),
+        new Vector2f(0, 1)
+};
 ```
 texture and texCoords are variables that will be used by other classes to figure this sprite out,
 so this class ends up being a "named tuple".
@@ -46,16 +65,13 @@ public Sprite(Texture texture){
     };
     this.texCoords = texCoords;
 }
-```
-This initializer uses the default texture coordinates, and is what used mostly in the project (is it?)
-
-```java
 public Sprite(Texture texture, Vector2f[] texCoords){
     this.texture = texture;
     this.texCoords = texCoords;
 }
 ```
-The complete initializer.
+This initializer uses the default texture coordinates, and the complete initializer. Both of them are commented out 
+to support the Gson serialization process (see **ADD REFERENCE**)
 
 ```java
 public Texture getTexture() {
@@ -65,11 +81,19 @@ public Texture getTexture() {
 public Vector2f[] getTexCoords() {
     return texCoords;
 }
+public void setTexture(Texture tex) {
+    this.texture = tex;
+}
+
+public void setTexCoords(Vector2f[] texCoords) {
+    this.texCoords = texCoords;
+}
 ```
-These are a couple getters so that we can still get those items, but make them read only.
+These are a couple getters and setters. The setters are used to simulate defining a Sprite without actually having 
+a constructor function.
 
 
-## Sprite Renderer
+## The Sprite Renderer
 
 ```java
 public class SpriteRenderer extends Component
@@ -79,8 +103,8 @@ This class, just like the Font Renderer, extends the Jade.Component class (see *
 ```java
 private Vector4f color;
 private Sprite sprite;
-private Transform lastTransform;
-private boolean isDirty = false;
+private transient Transform lastTransform;
+private transient boolean isDirty = false;
 ```
 Pre-declaring the variables that will be needed throughout this class. <br>
 ```Vector4f color``` - The color of the sprite (white when only provided with sprite) <br>
@@ -88,6 +112,7 @@ Pre-declaring the variables that will be needed throughout this class. <br>
 ```Transfrom lastTransform``` - The last transformation that was made. <br>
 ```boolean isDirty``` - Used to dictate whether this element needs to be redrawn. <br>
 
+both lastTransform and isDirty are flagged as transient so that they won't be pulled by the Gson serializer.
 
 
 ```java
@@ -103,7 +128,8 @@ public SpriteRenderer(Sprite sprite){
     this.isDirty = true;
 }
 ```
-Two different constructors to build the Sprite Renderer, using both a color and a sprite.
+Two different constructors to build the Sprite Renderer, using both a color and a sprite. Both of them are 
+commented out to support the Gson serialization process (see **ADD REFERENCE**)
 
 ```java
 @Override
@@ -124,6 +150,17 @@ public void update(float dt){
 ```
 This function is being called every frame. It's sole purpose is to check whether the sprite
 changed and flag it if it did.
+
+```java
+@Override
+public void imgui() {
+        float[] imColor = {color.x, color.y, color.z, color.w};
+        if (ImGui.colorPicker4("Color Picker: ", imColor)) {
+            this.color.set(imColor[0], imColor[1], imColor[2], imColor[3]);
+            this.isDirty = true;
+        }
+    }
+```
 
 ```java
 public Vector4f getColor() {
